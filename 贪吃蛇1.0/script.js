@@ -941,22 +941,50 @@ startMobileBtn.addEventListener('click', () => {
     vibrate([50]);
     handleMobileGameControl('start');
 });
+startMobileBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    vibrate([50]);
+    handleMobileGameControl('start');
+    startMobileBtn.style.transform = 'scale(0.95)';
+});
+startMobileBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    startMobileBtn.style.transform = '';
+});
+
 pauseMobileBtn.addEventListener('click', () => {
     vibrate([40]);
     handleMobileGameControl('pause');
 });
+pauseMobileBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    vibrate([40]);
+    handleMobileGameControl('pause');
+    pauseMobileBtn.style.transform = 'scale(0.95)';
+});
+pauseMobileBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    pauseMobileBtn.style.transform = '';
+});
+
 restartMobileBtn.addEventListener('click', () => {
     vibrate([60]);
     handleMobileGameControl('restart');
 });
+restartMobileBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    vibrate([60]);
+    handleMobileGameControl('restart');
+    restartMobileBtn.style.transform = 'scale(0.95)';
+});
+restartMobileBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    restartMobileBtn.style.transform = '';
+});
 
-// 防止游戏控制按键的默认行为
+// 防止游戏控制按键的默认行为（保留原有的防止默认行为代码）
 [startMobileBtn, pauseMobileBtn, restartMobileBtn].forEach(btn => {
-    btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-    btn.addEventListener('touchend', (e) => {
+    btn.addEventListener('touchmove', (e) => {
         e.preventDefault();
         e.stopPropagation();
     });
