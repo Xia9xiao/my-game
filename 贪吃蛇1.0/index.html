@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 游戏开始界面 -->
+        <div class="start-screen" id="start-screen">
+            <h1>🐍 贪吃蛇游戏</h1>
+            <div class="game-rules">
+                <h2>游戏规则</h2>
+                <div class="rules-content">
+                    <div class="rule-item">
+                        <span class="rule-icon">🍎</span>
+                        <span>吃红色食物 +10分</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-icon">🟠</span>
+                        <span>吃橙色大食物 +20分</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-icon">🟦</span>
+                        <span>吃蓝色减速食物 +5分（减速效果）</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-icon">⬜</span>
+                        <span>撞到灰色障碍物 游戏结束</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-icon">🏆</span>
+                        <span>达到500分 游戏胜利</span>
+                    </div>
+                </div>
+                
+                <h2>按键说明</h2>
+                <div class="controls-info">
+                    <div class="control-item">
+                        <kbd>R</kbd> <span>开始游戏</span>
+                    </div>
+                    <div class="control-item">
+                        <kbd>O</kbd> <span>重新开始</span>
+                    </div>
+                    <div class="control-item">
+                        <kbd>空格</kbd> <span>暂停/继续游戏</span>
+                    </div>
+                    <div class="control-item">
+                        <kbd>↑ ↓ ← →</kbd> <span>控制蛇的移动</span>
+                    </div>
+                    <div class="control-item">
+                        <kbd>W A S D</kbd> <span>也可控制蛇的移动</span>
+                    </div>
+                </div>
+            </div>
+            <button id="confirm-start-btn" class="confirm-btn">Yes - 开始游戏</button>
+        </div>
+
+        <!-- 主游戏界面 -->
+        <div class="main-game" id="main-game" style="display: none;">
+            <h1>贪吃蛇游戏</h1>
+            <div class="game-info">
+                <div class="score">分数: <span id="score">0</span></div>
+                <div class="stats">
+                    <div class="high-score">最高分: <span id="high-score">0</span></div>
+                    <div class="play-count">游玩次数: <span id="play-count">0</span></div>
+                </div>
+            </div>
+            
+            <!-- 里程碑弹窗 -->
+            <div class="milestone-popup" id="milestone-popup">
+                <div class="popup-content">
+                    <div class="popup-icon">🎉</div>
+                    <h3>恭喜！</h3>
+                    <p id="milestone-text">累计达到 100 分！</p>
+                    <button class="popup-close" id="popup-close">继续游戏</button>
+                </div>
+            </div>
+            <canvas id="game-canvas" width="450" height="450"></canvas>
+            <div class="controls-container">
+                <div class="controls">
+                    <button id="start-btn">开始游戏</button>
+                    <button id="pause-btn" disabled>暂停</button>
+                    <button id="resume-btn" disabled>继续</button>
+                </div>
+            </div>
+            <div class="game-over" id="game-over">
+                <h2>游戏结束</h2>
+                <p>最终得分: <span id="final-score">0</span></p>
+                <button id="restart-btn">重新开始</button>
+            </div>
+            
+            <!-- 摇杆控制器 -->
+            <div class="mobile-controls" id="mobile-controls">
+                <div class="joystick-container">
+                    <div class="joystick-base" id="joystick-base">
+                        <div class="joystick-knob" id="joystick-knob"></div>
+                    </div>
+                </div>
+                <div class="control-row action-row">
+                    <button class="control-btn action-btn" id="start-mobile-btn">▶</button>
+                    <button class="control-btn action-btn" id="pause-mobile-btn">⏸</button>
+                    <button class="control-btn action-btn" id="restart-mobile-btn">🔄</button>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <p>按 R 键开始游戏，O 键重新开始，空格键暂停/继续</p>
+                <p>使用方向键或 WASD 控制蛇的移动</p>
+                <p class="mobile-instruction">📱 手机用户可使用摇杆和按键控制</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
