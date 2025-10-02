@@ -351,7 +351,7 @@ button:disabled {
     position: relative;
 }
 
-/* 摇杆控制器样式 */
+/* 绿色方向按键控制器样式 */
 .mobile-controls {
     display: flex;
     flex-direction: column;
@@ -365,89 +365,68 @@ button:disabled {
     backdrop-filter: blur(10px);
 }
 
-.joystick-container {
+.direction-controls {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    margin: 20px 0;
+    gap: 10px;
 }
 
-.joystick-base {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
-    border: 3px solid rgba(255, 255, 255, 0.2);
-    position: relative;
+.direction-row {
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 
-        inset 0 4px 8px rgba(0, 0, 0, 0.3),
-        0 8px 16px rgba(0, 0, 0, 0.4);
+    gap: 10px;
+}
+
+.direction-btn {
+    width: 70px;
+    height: 70px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
     cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.joystick-base:hover {
-    border-color: rgba(76, 175, 80, 0.4);
-    box-shadow: 
-        inset 0 4px 8px rgba(0, 0, 0, 0.3),
-        0 8px 16px rgba(0, 0, 0, 0.4),
-        0 0 20px rgba(76, 175, 80, 0.3);
+.direction-btn:hover {
+    background: linear-gradient(145deg, #45a049, #4CAF50);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 16px rgba(76, 175, 80, 0.5);
 }
 
-.joystick-base:active {
-    transform: scale(0.98);
-    box-shadow: 
-        inset 0 6px 12px rgba(0, 0, 0, 0.4),
-        0 4px 8px rgba(0, 0, 0, 0.3);
+.direction-btn:active {
+    transform: translateY(1px) scale(0.95);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(145deg, #3d8b40, #45a049);
 }
 
-.joystick-knob {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #4CAF50, #45a049);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+/* 添加按键按下时的波纹效果 */
+.direction-btn::before {
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
     transform: translate(-50%, -50%);
-    box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.4),
-        inset 0 2px 4px rgba(255, 255, 255, 0.2);
-    transition: all 0.1s ease;
-    cursor: grab;
+    transition: width 0.3s, height 0.3s;
 }
 
-.joystick-knob:active {
-    cursor: grabbing;
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 
-        0 6px 12px rgba(76, 175, 80, 0.5),
-        inset 0 2px 4px rgba(255, 255, 255, 0.3);
-    background: linear-gradient(145deg, #66BB6A, #4CAF50);
-}
-
-/* 摇杆激活时的发光效果 */
-.joystick-base.active {
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 
-        inset 0 4px 8px rgba(0, 0, 0, 0.3),
-        0 8px 16px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(76, 175, 80, 0.5);
-}
-
-.joystick-knob.active {
-    background: linear-gradient(145deg, #66BB6A, #4CAF50);
-    box-shadow: 
-        0 6px 12px rgba(76, 175, 80, 0.6),
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        0 0 15px rgba(76, 175, 80, 0.4);
+.direction-btn:active::before {
+    width: 100%;
+    height: 100%;
 }
 
 .control-row {

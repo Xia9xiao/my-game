@@ -17,9 +17,11 @@ const confirmStartButton = document.getElementById('confirm-start-btn');
 const startScreen = document.getElementById('start-screen');
 const mainGame = document.getElementById('main-game');
 
-// 摇杆控制器元素
-const joystickBase = document.getElementById('joystick-base');
-const joystickKnob = document.getElementById('joystick-knob');
+// 方向按键控制器元素
+const upBtn = document.getElementById('up-btn');
+const downBtn = document.getElementById('down-btn');
+const leftBtn = document.getElementById('left-btn');
+const rightBtn = document.getElementById('right-btn');
 const startMobileBtn = document.getElementById('start-mobile-btn');
 const pauseMobileBtn = document.getElementById('pause-mobile-btn');
 const restartMobileBtn = document.getElementById('restart-mobile-btn');
@@ -847,127 +849,51 @@ function vibrate(pattern = [50]) {
     }
 }
 
-// 摇杆控制器变量
-let joystickActive = false;
-let joystickCenter = { x: 0, y: 0 };
-let joystickRadius = 60; // 摇杆底座半径
-let knobRadius = 25; // 摇杆头半径
-let currentDirection = null;
-
-// 摇杆控制器事件处理
-function initJoystick() {
-    const baseRect = joystickBase.getBoundingClientRect();
-    joystickCenter.x = baseRect.left + baseRect.width / 2;
-    joystickCenter.y = baseRect.top + baseRect.height / 2;
-}
-
-function handleJoystickStart(e) {
-    e.preventDefault();
-    joystickActive = true;
-    vibrate([20]);
-    
-    // 添加激活状态样式
-    joystickBase.classList.add('active');
-    joystickKnob.classList.add('active');
-    
-    // 更新摇杆中心位置
-    initJoystick();
-    
-    // 处理触摸或鼠标事件
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    updateJoystickPosition(clientX, clientY);
-}
-
-function handleJoystickMove(e) {
-    if (!joystickActive) return;
-    e.preventDefault();
-    
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    updateJoystickPosition(clientX, clientY);
-}
-
-function handleJoystickEnd(e) {
-    if (!joystickActive) return;
-    e.preventDefault();
-    
-    joystickActive = false;
-    currentDirection = null;
-    
-    // 移除激活状态样式
-    joystickBase.classList.remove('active');
-    joystickKnob.classList.remove('active');
-    
-    // 摇杆头回到中心
-    joystickKnob.style.transform = 'translate(-50%, -50%)';
-    
-    vibrate([30]);
-}
-
-function updateJoystickPosition(clientX, clientY) {
-    const deltaX = clientX - joystickCenter.x;
-    const deltaY = clientY - joystickCenter.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // 限制摇杆头在底座范围内
-    const maxDistance = joystickRadius - knobRadius;
-    let knobX = deltaX;
-    let knobY = deltaY;
-    
-    if (distance > maxDistance) {
-        knobX = (deltaX / distance) * maxDistance;
-        knobY = (deltaY / distance) * maxDistance;
-    }
-    
-    // 更新摇杆头位置
-    joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
-    
-    // 检测方向
-    detectDirection(knobX, knobY, distance);
-}
-
-function detectDirection(x, y, distance) {
-    const threshold = 15; // 最小移动距离阈值
-    
-    if (distance < threshold) {
-        currentDirection = null;
-        return;
-    }
-    
-    const angle = Math.atan2(y, x) * 180 / Math.PI;
-    let newDirection = null;
-    
-    // 根据角度确定方向
-    if (angle >= -45 && angle < 45) {
-        newDirection = RIGHT;
-    } else if (angle >= 45 && angle < 135) {
-        newDirection = DOWN;
-    } else if (angle >= -135 && angle < -45) {
-        newDirection = UP;
-    } else {
-        newDirection = LEFT;
-    }
-    
-    // 只有方向改变时才触发
-    if (newDirection !== currentDirection) {
-        currentDirection = newDirection;
-        handleMobileDirection(newDirection);
+// 方向按键控制器事件处理
+function handleDirectionButtonPress(direction) {
+    if (gameState === 'playing') {
+        handleMobileDirection(direction);
         vibrate([25]);
     }
 }
 
-// 摇杆事件监听
-joystickBase.addEventListener('mousedown', handleJoystickStart);
-joystickBase.addEventListener('touchstart', handleJoystickStart);
+// 方向按键事件监听
+upBtn.addEventListener('click', () => {
+    handleDirectionButtonPress(UP);
+});
 
-document.addEventListener('mousemove', handleJoystickMove);
-document.addEventListener('touchmove', handleJoystickMove);
+downBtn.addEventListener('click', () => {
+    handleDirectionButtonPress(DOWN);
+});
 
-document.addEventListener('mouseup', handleJoystickEnd);
-document.addEventListener('touchend', handleJoystickEnd);
+leftBtn.addEventListener('click', () => {
+    handleDirectionButtonPress(LEFT);
+});
+
+rightBtn.addEventListener('click', () => {
+    handleDirectionButtonPress(RIGHT);
+});
+
+// 添加触摸事件支持
+upBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleDirectionButtonPress(UP);
+});
+
+downBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleDirectionButtonPress(DOWN);
+});
+
+leftBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleDirectionButtonPress(LEFT);
+});
+
+rightBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleDirectionButtonPress(RIGHT);
+});
 
 // 游戏控制按键事件监听
 startMobileBtn.addEventListener('click', () => {
@@ -1007,14 +933,12 @@ function resizeCanvas() {
     canvas.style.height = maxWidth + 'px';
 }
 
-// 初始化摇杆
+// 初始化游戏界面
 window.addEventListener('load', () => {
     loadGameData(); // 加载游戏数据
-    initJoystick();
     resizeCanvas();
 });
 window.addEventListener('resize', () => {
-    initJoystick();
     resizeCanvas();
 });
 
