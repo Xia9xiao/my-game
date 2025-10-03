@@ -32,11 +32,54 @@ const startMobileBtn = document.getElementById('start-mobile-btn');
 const pauseMobileBtn = document.getElementById('pause-mobile-btn');
 const restartMobileBtn = document.getElementById('restart-mobile-btn');
 
-// 游戏参数
+// 游戏常量
 const GRID_SIZE = 40; // 网格大小 40x40
 const BLOCK_SIZE = canvas.width / GRID_SIZE; // 每个方块的大小
 const BASE_FPS = 4; // 基础游戏帧率 (降低速度)
 let currentFPS = BASE_FPS; // 当前帧率，会随分数增加而提高
+
+// 音效系统
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let audioEnabled = true;
+
+// 创建音效的函数
+function createBeepSound(frequency, duration, volume = 0.3) {
+    if (!audioEnabled) return;
+    
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (error) {
+        console.log('音效播放失败:', error);
+    }
+}
+
+// 不同类型食物的音效
+function playFoodSound() {
+    createBeepSound(800, 0.1, 0.3); // 普通食物：高音短促
+}
+
+function playBigFoodSound() {
+    createBeepSound(600, 0.2, 0.4); // 大食物：中音较长
+    setTimeout(() => createBeepSound(800, 0.1, 0.3), 100); // 双音效
+}
+
+function playSlowFoodSound() {
+    createBeepSound(400, 0.3, 0.3); // 减速食物：低音长音
+}
 
 // 方向
 const UP = { x: 0, y: -1 };
@@ -607,6 +650,7 @@ function update() {
         if (head.x === food[i].x && head.y === food[i].y) {
             score += 10;
             scoreElement.textContent = score;
+            playFoodSound(); // 播放普通食物音效
             checkMilestone(); // 检查里程碑
             food.splice(i, 1); // 移除被吃掉的食物
             generateFood(); // 生成新的食物
@@ -621,6 +665,7 @@ function update() {
         head.y >= bigFood.y && head.y <= bigFood.y + 1) {
         score += 20;
         scoreElement.textContent = score;
+        playBigFoodSound(); // 播放大食物音效
         checkMilestone(); // 检查里程碑
         bigFood = null;
         ateFood = true;
@@ -630,6 +675,7 @@ function update() {
     if (slowFood && head.x === slowFood.x && head.y === slowFood.y) {
         score += 5;
         scoreElement.textContent = score;
+        playSlowFoodSound(); // 播放减速食物音效
         checkMilestone(); // 检查里程碑
         // 减速效果：降低当前速度
         currentFPS = Math.max(currentFPS - 2, 3); // 最低速度为3帧
@@ -805,6 +851,11 @@ function resumeGame() {
 
 // 开始游戏
 function startGame() {
+    // 启用音频上下文（需要用户交互）
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+    
     if (gameRunning) return;
     
     initGame();
