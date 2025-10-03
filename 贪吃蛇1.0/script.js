@@ -4,11 +4,14 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 const finalScoreElement = document.getElementById('final-score');
 const highScoreElement = document.getElementById('high-score');
+const currentLevelElement = document.getElementById('current-level');
+const targetScoreElement = document.getElementById('target-score');
 const playCountElement = document.getElementById('play-count');
 const milestonePopup = document.getElementById('milestone-popup');
 const milestoneText = document.getElementById('milestone-text');
 const popupClose = document.getElementById('popup-close');
 const gameOverElement = document.getElementById('game-over');
+const levelTransitionElement = document.getElementById('level-transition');
 const startButton = document.getElementById('start-btn');
 const pauseButton = document.getElementById('pause-btn');
 const resumeButton = document.getElementById('resume-btn');
@@ -33,7 +36,7 @@ const restartMobileBtn = document.getElementById('restart-mobile-btn');
 // 游戏参数
 const GRID_SIZE = 40; // 网格大小 40x40
 const BLOCK_SIZE = canvas.width / GRID_SIZE; // 每个方块的大小
-const BASE_FPS = 6; // 基础游戏帧率
+const BASE_FPS = 4; // 基础游戏帧率 (降低速度)
 let currentFPS = BASE_FPS; // 当前帧率，会随分数增加而提高
 
 // 方向
@@ -56,7 +59,7 @@ const COLORS = {
 
 // 游戏状态
 let snake = [];
-let food = {};
+let food = [];  // 改为数组，支持多个普通食物
 let bigFood = null; // 大食物（橙色，20分）
 let slowFood = null; // 减速食物（蓝色）
 let obstacles = [];
@@ -72,7 +75,24 @@ let gamePaused = false;
 let gameLoop;
 let obstacleTimer = 0; // 障碍物移动计时器
 
-// 从本地存储加载数据
+// 关卡系统变量
+let currentLevel = 1; // 当前关卡
+const MAX_LEVEL = 5; // 最大关卡数
+const LEVEL_SCORE_INCREMENT = 100; // 每关分数递增
+
+// 获取当前关卡的目标分数
+function getLevelTargetScore(level) {
+    return level * LEVEL_SCORE_INCREMENT;
+}
+
+// 更新关卡显示
+function updateLevelDisplay() {
+    currentLevelElement.textContent = currentLevel;
+    targetScoreElement.textContent = getLevelTargetScore(currentLevel);
+}
+function getLevelObstacleCount(level) {
+    return Math.min(5 + (level - 1) * 3, 20); // 第1关5个，每关增加3个，最多20个
+}
 function loadGameData() {
     highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
     playCount = parseInt(localStorage.getItem('snakePlayCount')) || 0;
@@ -136,6 +156,9 @@ function initGame() {
     lastMilestone = 0; // 重置里程碑记录
     scoreElement.textContent = score;
     
+    // 更新关卡显示
+    updateLevelDisplay();
+    
     // 重置速度到初始值
     currentFPS = BASE_FPS;
     
@@ -150,8 +173,13 @@ function initGame() {
     // 使用固定布局设置障碍物
     obstacles = [...fixedObstacles];
     
-    // 生成食物
-    generateFood();
+    // 清空所有食物
+    food = [];
+    
+    // 生成多个普通食物
+    for (let i = 0; i < 3; i++) {
+        generateFood();
+    }
     
     // 重置特殊食物
     bigFood = null;
@@ -164,16 +192,22 @@ function initGame() {
 // 生成固定的障碍物布局
 function generateFixedObstacles() {
     fixedObstacles = [];
-    // 生成10个固定位置的障碍物
-    const obstaclePositions = [
+    const obstacleCount = getLevelObstacleCount(currentLevel);
+    
+    // 预定义的安全障碍物位置（确保不会阻碍蛇的移动）
+    const safeObstaclePositions = [
         { x: 10, y: 10 }, { x: 35, y: 10 }, { x: 10, y: 35 }, { x: 35, y: 35 },
         { x: 22, y: 15 }, { x: 22, y: 30 }, { x: 15, y: 22 }, { x: 30, y: 22 },
-        { x: 8, y: 20 }, { x: 37, y: 25 }
+        { x: 8, y: 20 }, { x: 37, y: 25 }, { x: 12, y: 8 }, { x: 32, y: 12 },
+        { x: 18, y: 35 }, { x: 28, y: 8 }, { x: 6, y: 30 }, { x: 38, y: 18 },
+        { x: 14, y: 25 }, { x: 26, y: 32 }, { x: 20, y: 5 }, { x: 25, y: 38 }
     ];
     
-    obstaclePositions.forEach(pos => {
+    // 根据关卡选择障碍物数量
+    for (let i = 0; i < Math.min(obstacleCount, safeObstaclePositions.length); i++) {
+        const pos = safeObstaclePositions[i];
         fixedObstacles.push({ x: pos.x, y: pos.y, originalX: pos.x, originalY: pos.y });
-    });
+    }
 }
 
 // 移动障碍物
@@ -225,10 +259,12 @@ function generateFood() {
         (bigFood && 
          newFood.x >= bigFood.x && newFood.x <= bigFood.x + 1 &&
          newFood.y >= bigFood.y && newFood.y <= bigFood.y + 1) ||
-        (slowFood && slowFood.x === newFood.x && slowFood.y === newFood.y)
+        (slowFood && slowFood.x === newFood.x && slowFood.y === newFood.y) ||
+        // 检查是否与现有食物重叠
+        food.some(existingFood => existingFood.x === newFood.x && existingFood.y === newFood.y)
     );
     
-    food = newFood;
+    food.push(newFood);  // 添加到食物数组中
 }
 
 // 生成大食物
@@ -253,8 +289,10 @@ function generateBigFood() {
             (obstacle.y >= newBigFood.y && obstacle.y <= newBigFood.y + 1)
         ) ||
         // 检查2x2区域是否与普通食物冲突
-        ((food.x >= newBigFood.x && food.x <= newBigFood.x + 1) &&
-         (food.y >= newBigFood.y && food.y <= newBigFood.y + 1)) ||
+        food.some(foodItem => 
+            (foodItem.x >= newBigFood.x && foodItem.x <= newBigFood.x + 1) &&
+            (foodItem.y >= newBigFood.y && foodItem.y <= newBigFood.y + 1)
+        ) ||
         // 检查2x2区域是否与减速食物冲突
         (slowFood && 
          (slowFood.x >= newBigFood.x && slowFood.x <= newBigFood.x + 1) &&
@@ -277,7 +315,7 @@ function generateSlowFood() {
     } while (
         snake.some(segment => segment.x === newSlowFood.x && segment.y === newSlowFood.y) ||
         obstacles.some(obstacle => obstacle.x === newSlowFood.x && obstacle.y === newSlowFood.y) ||
-        (food.x === newSlowFood.x && food.y === newSlowFood.y) ||
+        food.some(foodItem => foodItem.x === newSlowFood.x && foodItem.y === newSlowFood.y) ||
         (bigFood && 
          newSlowFood.x >= bigFood.x && newSlowFood.x <= bigFood.x + 1 &&
          newSlowFood.y >= bigFood.y && newSlowFood.y <= bigFood.y + 1)
@@ -334,33 +372,36 @@ function drawSnake() {
 
 // 绘制食物
 function drawFood() {
-    const x = food.x * BLOCK_SIZE;
-    const y = food.y * BLOCK_SIZE;
-    const size = BLOCK_SIZE;
-    
-    // 绘制像素版苹果
-    ctx.fillStyle = '#FF4444'; // 苹果红色
-    
-    // 苹果主体 - 圆形底部
-    ctx.fillRect(x + size * 0.2, y + size * 0.3, size * 0.6, size * 0.5);
-    ctx.fillRect(x + size * 0.1, y + size * 0.4, size * 0.8, size * 0.3);
-    ctx.fillRect(x + size * 0.15, y + size * 0.25, size * 0.7, size * 0.15);
-    
-    // 苹果顶部凹陷
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(x + size * 0.4, y + size * 0.2, size * 0.2, size * 0.15);
-    
-    // 苹果茎
-    ctx.fillStyle = '#8B4513'; // 棕色茎
-    ctx.fillRect(x + size * 0.45, y + size * 0.1, size * 0.1, size * 0.2);
-    
-    // 苹果叶子
-    ctx.fillStyle = '#228B22'; // 绿色叶子
-    ctx.fillRect(x + size * 0.55, y + size * 0.15, size * 0.15, size * 0.1);
-    
-    // 苹果高光
-    ctx.fillStyle = '#FFAAAA';
-    ctx.fillRect(x + size * 0.25, y + size * 0.35, size * 0.15, size * 0.1);
+    // 绘制所有普通食物
+    food.forEach(foodItem => {
+        const x = foodItem.x * BLOCK_SIZE;
+        const y = foodItem.y * BLOCK_SIZE;
+        const size = BLOCK_SIZE;
+        
+        // 绘制像素版苹果
+        ctx.fillStyle = '#FF4444'; // 苹果红色
+        
+        // 苹果主体 - 圆形底部
+        ctx.fillRect(x + size * 0.2, y + size * 0.3, size * 0.6, size * 0.5);
+        ctx.fillRect(x + size * 0.1, y + size * 0.4, size * 0.8, size * 0.3);
+        ctx.fillRect(x + size * 0.15, y + size * 0.25, size * 0.7, size * 0.15);
+        
+        // 苹果顶部凹陷
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(x + size * 0.4, y + size * 0.2, size * 0.2, size * 0.15);
+        
+        // 苹果茎
+        ctx.fillStyle = '#8B4513'; // 棕色茎
+        ctx.fillRect(x + size * 0.45, y + size * 0.1, size * 0.1, size * 0.2);
+        
+        // 苹果叶子
+        ctx.fillStyle = '#228B22'; // 绿色叶子
+        ctx.fillRect(x + size * 0.55, y + size * 0.15, size * 0.15, size * 0.1);
+        
+        // 苹果高光
+        ctx.fillStyle = '#FFAAAA';
+        ctx.fillRect(x + size * 0.25, y + size * 0.35, size * 0.15, size * 0.1);
+    });
 }
 
 // 绘制大食物
@@ -488,12 +529,16 @@ function update() {
     let ateFood = false;
     
     // 检查是否吃到普通食物
-    if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        scoreElement.textContent = score;
-        checkMilestone(); // 检查里程碑
-        generateFood();
-        ateFood = true;
+    for (let i = 0; i < food.length; i++) {
+        if (head.x === food[i].x && head.y === food[i].y) {
+            score += 10;
+            scoreElement.textContent = score;
+            checkMilestone(); // 检查里程碑
+            food.splice(i, 1); // 移除被吃掉的食物
+            generateFood(); // 生成新的食物
+            ateFood = true;
+            break;
+        }
     }
     
     // 检查是否吃到大食物 (2x2区域)
@@ -525,10 +570,22 @@ function update() {
     }
     
     if (ateFood) {
-        // 检查是否达到胜利条件（500分）
-        if (score >= 500) {
-            gameWin();
-            return;
+        // 检查是否达到当前关卡的胜利条件
+        const targetScore = getLevelTargetScore(currentLevel);
+        if (score >= targetScore) {
+            if (currentLevel < MAX_LEVEL) {
+                // 进入下一关
+                currentLevel++;
+                // 暂停游戏
+                gameRunning = false;
+                clearInterval(gameLoop);
+                // 显示关卡切换界面
+                showLevelTransition();
+            } else {
+                // 通关所有关卡
+                gameWin();
+                return;
+            }
         }
         
         // 根据分数调整速度，每20分提高一次速度，最高不超过12帧
@@ -556,9 +613,9 @@ function update() {
 
 // 根据分数更新游戏速度
 function updateSpeed() {
-    // 每20分提高一次速度，最高不超过12帧
+    // 每20分提高一次速度，最高不超过8帧 (降低最大速度)
     const speedLevel = Math.floor(score / 20);
-    currentFPS = Math.min(BASE_FPS + speedLevel, 12);
+    currentFPS = Math.min(BASE_FPS + speedLevel, 8);
     
     // 如果游戏正在运行，重新设置游戏循环以应用新速度
     if (gameRunning && !gamePaused) {
@@ -614,13 +671,18 @@ function gameOver(isWin = false) {
     saveGameData();
     updateStatsDisplay();
     
+    // 如果不是胜利结束，重置到第一关
+    if (!isWin) {
+        currentLevel = 1;
+    }
+    
     // 更新游戏结束界面文本
     const gameOverTitle = document.querySelector('#game-over h2');
     if (isWin) {
         gameOverTitle.textContent = '恭喜你赢了!';
         gameOverTitle.style.color = '#4CAF50';
     } else {
-        gameOverTitle.textContent = '游戏结束!';
+        gameOverTitle.textContent = '游戏结束! 返回第一关';
         gameOverTitle.style.color = '#ff6b6b';
     }
     
@@ -633,8 +695,88 @@ function gameOver(isWin = false) {
 }
 
 // 游戏胜利
+// 显示关卡切换界面
+function showLevelTransition() {
+    const levelTransitionText = document.getElementById('level-transition-text');
+    
+    // 显示关卡弹窗
+    alert(`🎮 进入第${currentLevel}关！\n目标分数：${getLevelTargetScore(currentLevel)}分\n障碍物数量：${getLevelObstacleCount(currentLevel)}个`);
+    
+    levelTransitionText.textContent = `恭喜！进入第${currentLevel}关！目标分数：${getLevelTargetScore(currentLevel)}分`;
+    levelTransitionElement.style.display = 'flex';
+    
+    // 3秒后自动关闭关卡切换界面
+    setTimeout(() => {
+        levelTransitionElement.style.display = 'none';
+        // 自动开始下一关
+        startNextLevel();
+    }, 3000);
+}
+
+// 开始下一关
+function startNextLevel() {
+    // 重置分数
+    score = 0;
+    lastMilestone = 0;
+    scoreElement.textContent = score;
+    
+    // 重置蛇到初始位置和长度
+    snake = [
+        { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) },
+        { x: Math.floor(GRID_SIZE / 2) - 1, y: Math.floor(GRID_SIZE / 2) },
+        { x: Math.floor(GRID_SIZE / 2) - 2, y: Math.floor(GRID_SIZE / 2) }
+    ];
+    
+    // 重置方向
+    direction = RIGHT;
+    nextDirection = RIGHT;
+    
+    // 重新生成障碍物布局
+    generateFixedObstacles();
+    obstacles = [...fixedObstacles];
+    
+    // 更新关卡显示
+    updateLevelDisplay();
+    
+    // 重置速度到初始值
+    currentFPS = BASE_FPS;
+    
+    // 重置障碍物移动计时器
+    obstacleTimer = 0;
+    
+    // 清空所有食物并重新生成
+    food = [];
+    for (let i = 0; i < 3; i++) {
+        generateFood();
+    }
+    
+    // 重置特殊食物
+    bigFood = null;
+    slowFood = null;
+    
+    // 隐藏关卡切换界面
+    levelTransitionElement.style.display = 'none';
+    
+    // 重新绘制游戏界面
+    draw();
+    
+    // 不自动开始游戏，等待用户点击开始按钮
+}
+
 function gameWin() {
-    gameOver(true);
+    // 显示通关祝贺信息
+    alert('🎉 恭喜通关！游戏将自动返回第一关继续挑战！');
+    
+    // 重置到第一关
+    currentLevel = 1;
+    score = 0;
+    
+    // 重新初始化游戏
+    initGame();
+    updateLevelDisplay();
+    
+    // 显示关卡切换界面
+    showLevelTransition();
 }
 
 // 暂停游戏
