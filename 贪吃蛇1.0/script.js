@@ -11,7 +11,6 @@ const milestonePopup = document.getElementById('milestone-popup');
 const milestoneText = document.getElementById('milestone-text');
 const popupClose = document.getElementById('popup-close');
 const gameOverElement = document.getElementById('game-over');
-const levelTransitionElement = document.getElementById('level-transition');
 const startButton = document.getElementById('start-btn');
 const pauseButton = document.getElementById('pause-btn');
 const resumeButton = document.getElementById('resume-btn');
@@ -139,6 +138,66 @@ function closeMilestonePopup() {
 }
 
 // 初始化游戏
+function showLevelUpPopup(message, callback) {
+    // 使用现有的里程碑弹窗来显示关卡提升信息
+    milestoneText.textContent = message;
+    milestonePopup.style.display = 'flex';
+    
+    // 2秒后自动关闭弹窗并执行回调
+    setTimeout(() => {
+        milestonePopup.style.display = 'none';
+        if (callback) {
+            callback();
+        }
+    }, 2000);
+}
+
+function resetGameForNextLevel() {
+    // 重置分数
+    score = 0;
+    lastMilestone = 0;
+    scoreElement.textContent = score;
+    
+    // 重置蛇到初始位置和长度
+    snake = [
+        { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) },
+        { x: Math.floor(GRID_SIZE / 2) - 1, y: Math.floor(GRID_SIZE / 2) },
+        { x: Math.floor(GRID_SIZE / 2) - 2, y: Math.floor(GRID_SIZE / 2) }
+    ];
+    
+    // 重置方向
+    direction = RIGHT;
+    nextDirection = RIGHT;
+    
+    // 重置速度
+    currentFPS = BASE_FPS;
+    
+    // 重置障碍物移动计时器
+    obstacleTimer = 0;
+    
+    // 重新生成障碍物布局
+    generateFixedObstacles();
+    obstacles = [...fixedObstacles];
+    
+    // 清空所有食物
+    food = [];
+    
+    // 生成多个普通食物
+    for (let i = 0; i < 3; i++) {
+        generateFood();
+    }
+    
+    // 重置特殊食物
+    bigFood = null;
+    slowFood = null;
+    
+    // 更新关卡显示
+    updateLevelDisplay();
+    
+    // 重新绘制游戏界面
+    draw();
+}
+
 function initGame() {
     // 初始化蛇
     snake = [
@@ -223,19 +282,34 @@ function moveObstacles() {
             const newX = obstacle.x + randomDir.x;
             const newY = obstacle.y + randomDir.y;
             
-            // 确保障碍物不会移动到边界外，不会移动到蛇身上，不会移动到食物上
+            // 检查新位置是否与蛇身体重叠
+            const isOnSnake = snake.some(segment => segment.x === newX && segment.y === newY);
+            
+            // 检查新位置是否与普通食物重叠
+            const isOnFood = food.some(f => f.x === newX && f.y === newY);
+            
+            // 检查新位置是否与大食物重叠（大食物占2x2格子）
+            const isOnBigFood = bigFood && 
+                newX >= bigFood.x && newX <= bigFood.x + 1 &&
+                newY >= bigFood.y && newY <= bigFood.y + 1;
+            
+            // 检查新位置是否与减速食物重叠
+            const isOnSlowFood = slowFood && slowFood.x === newX && slowFood.y === newY;
+            
+            // 检查新位置是否与其他障碍物重叠
+            const isOnOtherObstacle = obstacles.some(other => other !== obstacle && other.x === newX && other.y === newY);
+            
+            // 确保障碍物不会移动到边界外，不会与任何游戏元素重叠
             // 并且不会离原始位置太远（最多2格）
             if (newX >= 0 && newX < GRID_SIZE && 
                 newY >= 0 && newY < GRID_SIZE &&
                 Math.abs(newX - obstacle.originalX) <= 2 &&
                 Math.abs(newY - obstacle.originalY) <= 2 &&
-                !snake.some(segment => segment.x === newX && segment.y === newY) &&
-                !(food.x === newX && food.y === newY) &&
-                !(bigFood && 
-                  newX >= bigFood.x && newX <= bigFood.x + 1 &&
-                  newY >= bigFood.y && newY <= bigFood.y + 1) &&
-                !(slowFood && slowFood.x === newX && slowFood.y === newY) &&
-                !obstacles.some(other => other !== obstacle && other.x === newX && other.y === newY)) {
+                !isOnSnake &&
+                !isOnFood &&
+                !isOnBigFood &&
+                !isOnSlowFood &&
+                !isOnOtherObstacle) {
                 
                 obstacle.x = newX;
                 obstacle.y = newY;
@@ -579,12 +653,22 @@ function update() {
                 // 暂停游戏
                 gameRunning = false;
                 clearInterval(gameLoop);
-                // 显示关卡切换界面
-                showLevelTransition();
+                // 重置游戏状态
+                resetGameForNextLevel();
+                // 显示关卡提升信息，2秒后自动开始游戏
+                showLevelUpPopup(`🎉 恭喜！进入第${currentLevel}关！\n目标分数：${getLevelTargetScore(currentLevel)}分`, () => {
+                    startGame();
+                });
             } else {
-                // 通关所有关卡
-                gameWin();
-                return;
+                // 通关所有关卡，自动返回第一关
+                currentLevel = 1;
+                gameRunning = false;
+                clearInterval(gameLoop);
+                resetGameForNextLevel();
+                // 显示通关信息，2秒后自动开始第一关
+                showLevelUpPopup(`🏆 恭喜通关！\n游戏将返回第一关`, () => {
+                    startGame();
+                });
             }
         }
         
@@ -695,88 +779,8 @@ function gameOver(isWin = false) {
 }
 
 // 游戏胜利
-// 显示关卡切换界面
-function showLevelTransition() {
-    const levelTransitionText = document.getElementById('level-transition-text');
-    
-    // 显示关卡弹窗
-    alert(`🎮 进入第${currentLevel}关！\n目标分数：${getLevelTargetScore(currentLevel)}分\n障碍物数量：${getLevelObstacleCount(currentLevel)}个`);
-    
-    levelTransitionText.textContent = `恭喜！进入第${currentLevel}关！目标分数：${getLevelTargetScore(currentLevel)}分`;
-    levelTransitionElement.style.display = 'flex';
-    
-    // 3秒后自动关闭关卡切换界面
-    setTimeout(() => {
-        levelTransitionElement.style.display = 'none';
-        // 自动开始下一关
-        startNextLevel();
-    }, 3000);
-}
-
-// 开始下一关
-function startNextLevel() {
-    // 重置分数
-    score = 0;
-    lastMilestone = 0;
-    scoreElement.textContent = score;
-    
-    // 重置蛇到初始位置和长度
-    snake = [
-        { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) },
-        { x: Math.floor(GRID_SIZE / 2) - 1, y: Math.floor(GRID_SIZE / 2) },
-        { x: Math.floor(GRID_SIZE / 2) - 2, y: Math.floor(GRID_SIZE / 2) }
-    ];
-    
-    // 重置方向
-    direction = RIGHT;
-    nextDirection = RIGHT;
-    
-    // 重新生成障碍物布局
-    generateFixedObstacles();
-    obstacles = [...fixedObstacles];
-    
-    // 更新关卡显示
-    updateLevelDisplay();
-    
-    // 重置速度到初始值
-    currentFPS = BASE_FPS;
-    
-    // 重置障碍物移动计时器
-    obstacleTimer = 0;
-    
-    // 清空所有食物并重新生成
-    food = [];
-    for (let i = 0; i < 3; i++) {
-        generateFood();
-    }
-    
-    // 重置特殊食物
-    bigFood = null;
-    slowFood = null;
-    
-    // 隐藏关卡切换界面
-    levelTransitionElement.style.display = 'none';
-    
-    // 重新绘制游戏界面
-    draw();
-    
-    // 不自动开始游戏，等待用户点击开始按钮
-}
-
 function gameWin() {
-    // 显示通关祝贺信息
-    alert('🎉 恭喜通关！游戏将自动返回第一关继续挑战！');
-    
-    // 重置到第一关
-    currentLevel = 1;
-    score = 0;
-    
-    // 重新初始化游戏
-    initGame();
-    updateLevelDisplay();
-    
-    // 显示关卡切换界面
-    showLevelTransition();
+    gameOver(true);
 }
 
 // 暂停游戏
