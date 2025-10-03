@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素球迷宫游戏</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f6f0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #5d4e37;
+        }
+        
+        h1 {
+            color: #8b4513;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #gameCanvas {
+            border: 3px solid #d2b48c;
+            background-color: #faf8f3;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            font-size: 16px;
+            color: #6b5b47;
+        }
+        
+        #winModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #faf8f3;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: #5d4e37;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            border: 2px solid #d2b48c;
+        }
+        
+        .modal-content h2 {
+            color: #8b4513;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background-color: #d2b48c;
+            color: #5d4e37;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #c19a6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌹 像素球玫瑰迷宫</h1>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    
+    <div class="controls">
+        <p>🎯 使用方向键控制像素球移动</p>
+        <p>🌹 穿越玫瑰迷宫，到达红旗位置！</p>
+        <button onclick="generateNewMaze()">生成新迷宫</button>
+        <button onclick="resetGame()">重新开始</button>
+    </div>
+    
+    <!-- 胜利弹窗 -->
+    <div id="winModal">
+        <div class="modal-content">
+            <h2>🎉 恭喜你！</h2>
+            <p>你成功穿越了玫瑰迷宫！</p>
+            <button onclick="closeWinModal()">继续游戏</button>
+            <button onclick="generateNewMaze(); closeWinModal();">新的挑战</button>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
