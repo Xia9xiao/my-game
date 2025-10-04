@@ -81,6 +81,140 @@ function playSlowFoodSound() {
     createBeepSound(400, 0.3, 0.3); // 减速食物：低音长音
 }
 
+// 通关音效
+function playVictoryFanfare() {
+    if (!audioEnabled) return;
+    
+    try {
+        // 创建胜利号角音效 - 经典的"Ta-da!"音效
+        const notes = [
+            { freq: 523, start: 0, duration: 0.2 },      // C5
+            { freq: 659, start: 0.2, duration: 0.2 },    // E5
+            { freq: 784, start: 0.4, duration: 0.2 },    // G5
+            { freq: 1047, start: 0.6, duration: 0.4 }    // C6 (长音)
+        ];
+        
+        notes.forEach(note => {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + note.duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + note.duration);
+            }, note.start * 1000);
+        });
+    } catch (error) {
+        console.log('胜利音效播放失败:', error);
+    }
+}
+
+function playSuccessChime() {
+    if (!audioEnabled) return;
+    
+    try {
+        // 创建成功提示音 - 清脆的钟声效果
+        const frequencies = [880, 1108, 1319]; // A5, C#6, E6 - 大三和弦
+        
+        frequencies.forEach((freq, index) => {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 1.5);
+            }, index * 100);
+        });
+    } catch (error) {
+        console.log('成功音效播放失败:', error);
+    }
+}
+
+function playLevelCompleteSound() {
+    // 播放胜利号角
+    playVictoryFanfare();
+    // 延迟播放成功提示音
+    setTimeout(() => {
+        playSuccessChime();
+    }, 1000);
+}
+
+// 游戏结束音效
+function playGameOverSound() {
+    if (!audioEnabled) return;
+    
+    try {
+        // 创建游戏结束音效 - 下降的音调表示失败
+        const notes = [
+            { freq: 523, start: 0, duration: 0.3 },      // C5
+            { freq: 466, start: 0.3, duration: 0.3 },    // Bb4
+            { freq: 415, start: 0.6, duration: 0.3 },    // Ab4
+            { freq: 349, start: 0.9, duration: 0.6 }     // F4 (长音)
+        ];
+        
+        notes.forEach(note => {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sawtooth'; // 使用锯齿波，音色更加严肃
+                oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.25, audioContext.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + note.duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + note.duration);
+            }, note.start * 1000);
+        });
+        
+        // 添加低频震动效果
+        setTimeout(() => {
+            const bassOscillator = audioContext.createOscillator();
+            const bassGain = audioContext.createGain();
+            
+            bassOscillator.connect(bassGain);
+            bassGain.connect(audioContext.destination);
+            
+            bassOscillator.type = 'sine';
+            bassOscillator.frequency.setValueAtTime(80, audioContext.currentTime); // 低频
+            
+            bassGain.gain.setValueAtTime(0, audioContext.currentTime);
+            bassGain.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.1);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+            
+            bassOscillator.start(audioContext.currentTime);
+            bassOscillator.stop(audioContext.currentTime + 0.8);
+        }, 1200);
+        
+    } catch (error) {
+        console.log('游戏结束音效播放失败:', error);
+    }
+}
+
 // 方向
 const UP = { x: 0, y: -1 };
 const DOWN = { x: 0, y: 1 };
@@ -89,14 +223,19 @@ const RIGHT = { x: 1, y: 0 };
 
 // 颜色
 const COLORS = {
-    background: '#000000',
+    background: '#F5F5DC', // 米白色背景
     snake: '#4CAF50',
     snakeBorder: '#2E7D32',
     food: '#FF5252',
     bigFood: '#FF9800', // 橙色大食物
     slowFood: '#2196F3', // 蓝色减速食物
-    grid: '#222222',
-    obstacle: '#9E9E9E'
+    grid: '#E0E0E0', // 浅灰色网格线，在米白色背景上更清晰
+    obstacle: '#9E9E9E',
+    // AI蛇颜色
+    aiSnake1: '#FF6B6B', // 红色AI蛇
+    aiSnake1Border: '#E53E3E',
+    aiSnake2: '#4ECDC4', // 青色AI蛇
+    aiSnake2Border: '#319795'
 };
 
 // 游戏状态
@@ -116,6 +255,10 @@ let gameRunning = false;
 let gamePaused = false;
 let gameLoop;
 let obstacleTimer = 0; // 障碍物移动计时器
+
+// AI蛇系统
+let aiSnakes = []; // AI蛇数组
+let aiSnakeTimer = 0; // AI蛇移动计时器
 
 // 关卡系统变量
 let currentLevel = 1; // 当前关卡
@@ -218,6 +361,9 @@ function resetGameForNextLevel() {
     // 重置障碍物移动计时器
     obstacleTimer = 0;
     
+    // 重置AI蛇计时器
+    aiSnakeTimer = 0;
+    
     // 重新生成障碍物布局
     generateFixedObstacles();
     obstacles = [...fixedObstacles];
@@ -233,6 +379,9 @@ function resetGameForNextLevel() {
     // 重置特殊食物
     bigFood = null;
     slowFood = null;
+    
+    // 生成AI蛇（从第三关开始）
+    generateAISnakes();
     
     // 更新关卡显示
     updateLevelDisplay();
@@ -441,6 +590,302 @@ function generateSlowFood() {
     slowFood = newSlowFood;
 }
 
+// AI蛇系统函数
+function generateAISnakes() {
+    aiSnakes = [];
+    
+    // 只在第三关及以后生成AI蛇
+    if (currentLevel >= 3) {
+        // 生成两条AI蛇
+        for (let i = 0; i < 2; i++) {
+            const aiSnake = createAISnake(i);
+            if (aiSnake) {
+                aiSnakes.push(aiSnake);
+            }
+        }
+    }
+}
+
+function createAISnake(index) {
+    let attempts = 0;
+    let startX, startY;
+    
+    // 尝试找到合适的起始位置
+    do {
+        startX = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
+        startY = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
+        attempts++;
+        
+        if (attempts > 100) return null; // 避免无限循环
+        
+    } while (
+        // 检查是否与玩家蛇重叠
+        snake.some(segment => 
+            Math.abs(segment.x - startX) < 5 && Math.abs(segment.y - startY) < 5
+        ) ||
+        // 检查是否与障碍物重叠
+        obstacles.some(obstacle => 
+            Math.abs(obstacle.x - startX) < 3 && Math.abs(obstacle.y - startY) < 3
+        ) ||
+        // 检查是否与其他AI蛇重叠
+        aiSnakes.some(otherSnake => 
+            Math.abs(otherSnake.body[0].x - startX) < 5 && Math.abs(otherSnake.body[0].y - startY) < 5
+        )
+    );
+    
+    const directions = [UP, DOWN, LEFT, RIGHT];
+    const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+    
+    return {
+        id: index,
+        body: [
+            { x: startX, y: startY },
+            { x: startX - randomDirection.x, y: startY - randomDirection.y },
+            { x: startX - randomDirection.x * 2, y: startY - randomDirection.y * 2 }
+        ],
+        direction: randomDirection,
+        color: index === 0 ? COLORS.aiSnake1 : COLORS.aiSnake2,
+        borderColor: index === 0 ? COLORS.aiSnake1Border : COLORS.aiSnake2Border,
+        targetFood: null,
+        moveTimer: 0,
+        score: 30, // AI蛇的分数值
+        speedBoosts: 0, // AI蛇吃食物的次数，用于计算速度
+        baseSpeed: 1.0 // AI蛇的基础速度倍数，初始与玩家相同
+    };
+}
+
+function updateAISnakes() {
+    if (currentLevel < 3 || aiSnakes.length === 0) return;
+    
+    aiSnakeTimer++;
+    
+    // 使用玩家蛇的基础速度作为参考
+    const playerSpeed = currentFPS;
+    
+    if (aiSnakeTimer >= Math.floor(60 / playerSpeed)) {
+        aiSnakeTimer = 0;
+        
+        aiSnakes.forEach((aiSnake, index) => {
+            if (!aiSnake) return;
+            
+            // 计算AI蛇的个体速度：基础速度 + 吃食物加速，但不能超过玩家速度
+            const aiSpeedMultiplier = Math.min(1.0, aiSnake.baseSpeed + aiSnake.speedBoosts * 0.05);
+            
+            // 检查是否到了这条AI蛇的移动时间
+            aiSnake.moveTimer++;
+            const aiMoveInterval = Math.floor(1 / aiSpeedMultiplier);
+            
+            if (aiSnake.moveTimer >= aiMoveInterval) {
+                aiSnake.moveTimer = 0;
+                
+                // 尝试移动AI蛇，如果返回false表示需要分解
+                const moveSuccessful = moveAISnake(aiSnake);
+                if (!moveSuccessful) {
+                    // AI蛇撞到障碍物、边界或其他蛇，分解成食物
+                    decomposeAISnake(aiSnake, index);
+                    return;
+                }
+                
+                // 检查AI蛇是否吃到食物
+                checkAISnakeFoodCollision(aiSnake);
+                
+                // 检查AI蛇是否与玩家蛇碰撞
+                if (checkAISnakePlayerCollision(aiSnake)) {
+                    // 将AI蛇分解成食物
+                    decomposeAISnake(aiSnake, index);
+                }
+            }
+        });
+        
+        // 移除已分解的AI蛇
+        aiSnakes = aiSnakes.filter(snake => snake !== null);
+    }
+}
+
+function moveAISnake(aiSnake) {
+    // 简单的AI寻路逻辑：寻找最近的食物
+    const nearestFood = findNearestFood(aiSnake.body[0]);
+    
+    if (nearestFood) {
+        const head = aiSnake.body[0];
+        const dx = nearestFood.x - head.x;
+        const dy = nearestFood.y - head.y;
+        
+        // 选择最优方向
+        let newDirection = aiSnake.direction;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+            newDirection = dx > 0 ? RIGHT : LEFT;
+        } else {
+            newDirection = dy > 0 ? DOWN : UP;
+        }
+        
+        // 检查新方向是否安全
+        if (isAISnakeDirectionSafe(aiSnake, newDirection)) {
+            aiSnake.direction = newDirection;
+        } else {
+            // 如果不安全，尝试其他方向
+            const directions = [UP, DOWN, LEFT, RIGHT];
+            for (const dir of directions) {
+                if (isAISnakeDirectionSafe(aiSnake, dir)) {
+                    aiSnake.direction = dir;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // 移动AI蛇
+    const head = { ...aiSnake.body[0] };
+    head.x += aiSnake.direction.x;
+    head.y += aiSnake.direction.y;
+    
+    // 边界检查
+    if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        // 改变方向
+        const directions = [UP, DOWN, LEFT, RIGHT];
+        aiSnake.direction = directions[Math.floor(Math.random() * directions.length)];
+        return false; // 返回false表示需要分解
+    }
+    
+    // 检查是否撞到障碍物
+    if (obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
+        return false; // 返回false表示需要分解
+    }
+    
+    // 检查是否撞到自己
+    if (aiSnake.body.some(segment => segment.x === head.x && segment.y === head.y)) {
+        return false; // 返回false表示需要分解
+    }
+    
+    // 检查是否撞到其他AI蛇
+    if (aiSnakes.some(otherSnake => 
+        otherSnake !== aiSnake && otherSnake &&
+        otherSnake.body.some(segment => segment.x === head.x && segment.y === head.y)
+    )) {
+        return false; // 返回false表示需要分解
+    }
+    
+    aiSnake.body.unshift(head);
+    aiSnake.body.pop(); // 移除尾部
+    return true; // 返回true表示移动成功
+}
+
+function findNearestFood(position) {
+    let nearest = null;
+    let minDistance = Infinity;
+    
+    // 检查普通食物
+    food.forEach(foodItem => {
+        const distance = Math.abs(foodItem.x - position.x) + Math.abs(foodItem.y - position.y);
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = foodItem;
+        }
+    });
+    
+    // 检查大食物
+    if (bigFood) {
+        const distance = Math.abs(bigFood.x - position.x) + Math.abs(bigFood.y - position.y);
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = bigFood;
+        }
+    }
+    
+    return nearest;
+}
+
+function isAISnakeDirectionSafe(aiSnake, direction) {
+    const head = { ...aiSnake.body[0] };
+    head.x += direction.x;
+    head.y += direction.y;
+    
+    // 边界检查
+    if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        return false;
+    }
+    
+    // 检查是否撞到障碍物
+    if (obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
+        return false;
+    }
+    
+    // 检查是否撞到自己
+    if (aiSnake.body.some(segment => segment.x === head.x && segment.y === head.y)) {
+        return false;
+    }
+    
+    // 检查是否撞到其他AI蛇
+    if (aiSnakes.some(otherSnake => 
+        otherSnake !== aiSnake && otherSnake &&
+        otherSnake.body.some(segment => segment.x === head.x && segment.y === head.y)
+    )) {
+        return false;
+    }
+    
+    return true;
+}
+
+function checkAISnakeFoodCollision(aiSnake) {
+    const head = aiSnake.body[0];
+    
+    // 检查普通食物
+    for (let i = food.length - 1; i >= 0; i--) {
+        if (food[i].x === head.x && food[i].y === head.y) {
+            food.splice(i, 1);
+            // AI蛇吃到食物后增长
+            const tail = { ...aiSnake.body[aiSnake.body.length - 1] };
+            aiSnake.body.push(tail);
+            // AI蛇吃食物加速（每吃一次食物得20分，增加一次速度）
+            aiSnake.speedBoosts++;
+            // 生成新食物
+            generateFood();
+            break;
+        }
+    }
+    
+    // 检查大食物
+    if (bigFood && head.x === bigFood.x && head.y === bigFood.y) {
+        bigFood = null;
+        // AI蛇吃到大食物后增长更多
+        for (let i = 0; i < 2; i++) {
+            const tail = { ...aiSnake.body[aiSnake.body.length - 1] };
+            aiSnake.body.push(tail);
+        }
+        // 大食物也增加速度
+        aiSnake.speedBoosts++;
+    }
+}
+
+function checkAISnakePlayerCollision(aiSnake) {
+    const aiHead = aiSnake.body[0];
+    
+    // 检查AI蛇头是否撞到玩家蛇身体
+    return snake.some(segment => segment.x === aiHead.x && segment.y === aiHead.y);
+}
+
+function decomposeAISnake(aiSnake, index) {
+    // 将AI蛇的每个身体段落转换为食物，分数基于蛇的长度
+    const snakeLength = aiSnake.body.length;
+    const scorePerSegment = Math.max(5, Math.floor(snakeLength / 2)); // 最少5分，长度越长分数越高
+    
+    aiSnake.body.forEach(segment => {
+        // 避免在障碍物或其他蛇身上生成食物
+        if (!obstacles.some(obstacle => obstacle.x === segment.x && obstacle.y === segment.y) &&
+            !snake.some(playerSegment => playerSegment.x === segment.x && playerSegment.y === segment.y)) {
+            food.push({
+                x: segment.x,
+                y: segment.y,
+                value: scorePerSegment // 根据蛇长度计算分数
+            });
+        }
+    });
+    
+    // 标记AI蛇为已分解
+    aiSnakes[index] = null;
+}
+
 // 绘制网格
 function drawGrid() {
     ctx.strokeStyle = COLORS.grid;
@@ -476,15 +921,202 @@ function drawObstacles() {
 // 绘制蛇
 function drawSnake() {
     snake.forEach((segment, index) => {
-        // 蛇头用不同颜色
-        const color = index === 0 ? '#66BB6A' : COLORS.snake;
+        const x = segment.x * BLOCK_SIZE;
+        const y = segment.y * BLOCK_SIZE;
         
-        ctx.fillStyle = color;
-        ctx.fillRect(segment.x * BLOCK_SIZE, segment.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-        
-        ctx.strokeStyle = COLORS.snakeBorder;
-        ctx.strokeRect(segment.x * BLOCK_SIZE, segment.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        if (index === 0) {
+            // 蛇头 - 像素化设计，参考传说之下风格
+            drawPixelSnakeHead(x, y);
+        } else {
+            // 蛇身 - 像素化设计
+            drawPixelSnakeBody(x, y, index);
+        }
     });
+}
+
+// 绘制像素化蛇头
+function drawPixelSnakeHead(x, y) {
+    const pixelSize = BLOCK_SIZE / 8; // 8x8像素网格
+    
+    // 蛇头像素图案 (8x8)
+    const headPattern = [
+        [0,0,1,1,1,1,0,0],
+        [0,1,2,2,2,2,1,0],
+        [1,2,3,2,2,3,2,1],
+        [1,2,2,2,2,2,2,1],
+        [1,2,4,2,2,4,2,1],
+        [1,2,2,5,5,2,2,1],
+        [0,1,2,2,2,2,1,0],
+        [0,0,1,1,1,1,0,0]
+    ];
+    
+    // 颜色映射
+    const colors = {
+        0: 'transparent',
+        1: '#2E7D32', // 深绿边框
+        2: '#66BB6A', // 主体绿色
+        3: '#FFFFFF', // 眼睛白色
+        4: '#000000', // 眼珠黑色
+        5: '#FF4444'  // 嘴巴红色
+    };
+    
+    // 绘制像素
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const colorIndex = headPattern[row][col];
+            if (colorIndex !== 0) {
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fillRect(x + col * pixelSize, y + row * pixelSize, pixelSize, pixelSize);
+            }
+        }
+    }
+}
+
+// 绘制AI蛇
+function drawAISnakes() {
+    aiSnakes.forEach(aiSnake => {
+        if (!aiSnake) return;
+        
+        aiSnake.body.forEach((segment, index) => {
+            const x = segment.x * BLOCK_SIZE;
+            const y = segment.y * BLOCK_SIZE;
+            
+            if (index === 0) {
+                // AI蛇头
+                drawPixelAISnakeHead(x, y, aiSnake.color, aiSnake.borderColor);
+            } else {
+                // AI蛇身
+                drawPixelAISnakeBody(x, y, index, aiSnake.color, aiSnake.borderColor);
+            }
+        });
+    });
+}
+
+// 绘制像素化AI蛇头
+function drawPixelAISnakeHead(x, y, color, borderColor) {
+    const pixelSize = BLOCK_SIZE / 8; // 8x8像素网格
+    
+    // AI蛇头像素图案 (8x8)
+    const headPattern = [
+        [0,0,1,1,1,1,0,0],
+        [0,1,2,2,2,2,1,0],
+        [1,2,3,2,2,3,2,1],
+        [1,2,2,2,2,2,2,1],
+        [1,2,4,2,2,4,2,1],
+        [1,2,2,5,5,2,2,1],
+        [0,1,2,2,2,2,1,0],
+        [0,0,1,1,1,1,0,0]
+    ];
+    
+    // 颜色映射
+    const colors = {
+        0: 'transparent',
+        1: borderColor, // 边框颜色
+        2: color, // 主体颜色
+        3: '#FFFFFF', // 眼睛白色
+        4: '#000000', // 眼珠黑色
+        5: '#FF4444'  // 嘴巴红色
+    };
+    
+    // 绘制像素
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const colorIndex = headPattern[row][col];
+            if (colorIndex !== 0) {
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fillRect(x + col * pixelSize, y + row * pixelSize, pixelSize, pixelSize);
+            }
+        }
+    }
+}
+
+// 绘制像素化AI蛇身
+function drawPixelAISnakeBody(x, y, segmentIndex, color, borderColor) {
+    const pixelSize = BLOCK_SIZE / 8; // 8x8像素网格
+    
+    // AI蛇身像素图案 (8x8) - 带有纹理
+    const bodyPattern = [
+        [0,0,1,1,1,1,0,0],
+        [0,1,2,2,2,2,1,0],
+        [1,2,2,3,3,2,2,1],
+        [1,2,3,2,2,3,2,1],
+        [1,2,3,2,2,3,2,1],
+        [1,2,2,3,3,2,2,1],
+        [0,1,2,2,2,2,1,0],
+        [0,0,1,1,1,1,0,0]
+    ];
+    
+    // 颜色映射 - 根据段落索引调整亮度
+    const brightness = Math.max(0.7, 1 - (segmentIndex * 0.05));
+    
+    // 解析颜色值
+    const colorMatch = color.match(/#([0-9A-F]{6})/i);
+    let r, g, b;
+    if (colorMatch) {
+        r = parseInt(colorMatch[1].substr(0, 2), 16);
+        g = parseInt(colorMatch[1].substr(2, 2), 16);
+        b = parseInt(colorMatch[1].substr(4, 2), 16);
+    } else {
+        r = g = b = 128; // 默认灰色
+    }
+    
+    const colors = {
+        0: 'transparent',
+        1: borderColor, // 边框颜色
+        2: `rgb(${Math.floor(r * brightness)}, ${Math.floor(g * brightness)}, ${Math.floor(b * brightness)})`, // 主体颜色
+        3: `rgb(${Math.floor(r * brightness * 1.2)}, ${Math.floor(g * brightness * 1.2)}, ${Math.floor(b * brightness * 1.2)})` // 纹理颜色
+    };
+    
+    // 绘制像素
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const colorIndex = bodyPattern[row][col];
+            if (colorIndex !== 0) {
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fillRect(x + col * pixelSize, y + row * pixelSize, pixelSize, pixelSize);
+            }
+        }
+    }
+}
+
+// 绘制像素化蛇身
+function drawPixelSnakeBody(x, y, segmentIndex) {
+    const pixelSize = BLOCK_SIZE / 8; // 8x8像素网格
+    
+    // 蛇身像素图案 (8x8) - 带有纹理
+    const bodyPattern = [
+        [0,0,1,1,1,1,0,0],
+        [0,1,2,2,2,2,1,0],
+        [1,2,2,3,3,2,2,1],
+        [1,2,3,2,2,3,2,1],
+        [1,2,3,2,2,3,2,1],
+        [1,2,2,3,3,2,2,1],
+        [0,1,2,2,2,2,1,0],
+        [0,0,1,1,1,1,0,0]
+    ];
+    
+    // 颜色映射 - 根据段落索引调整亮度
+    const brightness = Math.max(0.7, 1 - (segmentIndex * 0.05));
+    const baseGreen = Math.floor(76 * brightness); // #4CAF50 的绿色分量
+    const accentGreen = Math.floor(102 * brightness); // 更亮的绿色
+    
+    const colors = {
+        0: 'transparent',
+        1: '#2E7D32', // 深绿边框
+        2: `rgb(${Math.floor(76 * brightness)}, ${Math.floor(175 * brightness)}, ${Math.floor(80 * brightness)})`, // 主体绿色
+        3: `rgb(${Math.floor(102 * brightness)}, ${Math.floor(187 * brightness)}, ${Math.floor(106 * brightness)})` // 纹理绿色
+    };
+    
+    // 绘制像素
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const colorIndex = bodyPattern[row][col];
+            if (colorIndex !== 0) {
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fillRect(x + col * pixelSize, y + row * pixelSize, pixelSize, pixelSize);
+            }
+        }
+    }
 }
 
 // 绘制食物
@@ -630,14 +1262,27 @@ function update() {
     
     // 检查是否撞到自己
     if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        playGameOverSound(); // 播放游戏结束音效
         gameOver(false);
         return;
     }
     
     // 检查是否撞到障碍物
     if (obstacles.some(obstacle => obstacle.x === head.x && obstacle.y === head.y)) {
+        playGameOverSound(); // 播放游戏结束音效
         gameOver(false);
         return;
+    }
+    
+    // 检查是否撞到AI蛇
+    if (currentLevel >= 3 && aiSnakes.length > 0) {
+        for (const aiSnake of aiSnakes) {
+            if (aiSnake && aiSnake.body.some(segment => segment.x === head.x && segment.y === head.y)) {
+                playGameOverSound(); // 播放游戏结束音效
+                gameOver(false);
+                return;
+            }
+        }
     }
     
     // 移动蛇
@@ -696,6 +1341,8 @@ function update() {
             if (currentLevel < MAX_LEVEL) {
                 // 进入下一关
                 currentLevel++;
+                // 播放通关音效
+                playLevelCompleteSound();
                 // 暂停游戏
                 gameRunning = false;
                 clearInterval(gameLoop);
@@ -708,6 +1355,8 @@ function update() {
             } else {
                 // 通关所有关卡，自动返回第一关
                 currentLevel = 1;
+                // 播放通关音效
+                playLevelCompleteSound();
                 gameRunning = false;
                 clearInterval(gameLoop);
                 resetGameForNextLevel();
@@ -739,6 +1388,9 @@ function update() {
         moveObstacles();
         obstacleTimer = 0;
     }
+    
+    // 更新AI蛇
+    updateAISnakes();
 }
 
 // 根据分数更新游戏速度
@@ -775,6 +1427,9 @@ function draw() {
     
     // 绘制蛇
     drawSnake();
+    
+    // 绘制AI蛇
+    drawAISnakes();
 }
 
 // 游戏主循环
@@ -804,6 +1459,8 @@ function gameOver(isWin = false) {
     // 如果不是胜利结束，重置到第一关
     if (!isWin) {
         currentLevel = 1;
+        // 清除所有AI蛇
+        aiSnakes = [];
     }
     
     // 更新游戏结束界面文本
@@ -888,6 +1545,9 @@ function restartGame() {
     clearInterval(gameLoop);
     gameLoop = undefined;
     gameOverElement.style.display = 'none';
+    
+    // 清除所有AI蛇（确保重新开始时AI蛇被清除）
+    aiSnakes = [];
     
     // 初始化游戏但不立即开始移动
     initGame();
